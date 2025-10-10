@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TURKUAZZ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <script type="module">await import('../assets/js/renewCache.js')</script>
+</head>
+<body class="bg-dark-bg text-white min-h-screen">
+    <header></header>
+    
+    <div class="flex">
+        <aside id="sidebar"></aside>
+
+        <main class="flex-1 p-6 overflow-hidden">
+            <div id="status">VLC Status: Not running</div>
+           <section class="mb-8">
+                <h2 class="text-2xl font-light mb-6 text-gray-300">last activity</h2>
+                <div class="overflow-x-scroll pb-4">
+                    <div id="lastactivity-content" class="flex gap-4"></div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-light mb-6 text-gray-300">last uploads</h2>
+                <div class="overflow-x-scroll pb-4">
+                    <div id="lastuploaded-content" class="flex gap-4"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="../assets/js/headers/header.js"></script>
+    <script src="../assets/js/headers/sidebar.js"></script>
+    <script src="../assets/js/index.js"></script>
+</body>
+</html>

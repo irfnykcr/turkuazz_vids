@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TURKUAZZ - Edit File</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <script type="module">await import('../assets/js/renewCache.js')</script>
+</head>
+<body class="bg-dark-bg text-white min-h-screen">
+    <header></header>
+
+    <div class="flex">
+        <aside id="sidebar"></aside>
+
+        <main class="flex-1 p-6">
+            <div id="fileSelectionPage" class="space-y-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-2xl font-light text-gray-300">Select File to Edit</h1>
+                </div>
+                
+                <div class="bg-dark-card border border-gray-600 rounded-lg p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="categoryFilter" class="block text-turkuazz text-sm mb-2">Filter by Category</label>
+                            <select id="categoryFilter" class="w-full bg-dark-bg border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-turkuazz">
+                                <option value="all">All Categories</option>
+                                <!-- dynamic -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="searchInput" class="block text-turkuazz text-sm mb-2">Search Files</label>
+                            <div class="flex">
+                                <input id="searchInput" type="text" placeholder="Search by filename..." class="flex-1 bg-dark-bg border border-gray-700 rounded-l px-3 py-2 text-white focus:outline-none focus:border-turkuazz">
+                                <button id="clearSearch" class="bg-gray-600 text-white px-4 py-2 rounded-r hover:bg-gray-500 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <label for="fileSelect" class="block text-turkuazz text-sm mb-2">Select File to Edit</label>
+                        <select id="fileSelect" class="w-full bg-dark-bg border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-turkuazz">
+                            <option value="">Choose a file...</option>
+                            <!-- dynamic -->
+                        </select>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button id="editFileBtn" disabled class="px-6 py-2 bg-turkuazz text-dark-bg font-medium rounded hover:bg-opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Edit Selected File
+                        </button>
+                    </div>
+                    
+                    <div id="loadingState" class="text-center py-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-turkuazz mx-auto mb-4"></div>
+                        <div class="text-gray-400">Loading files...</div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div id="fileEditingPage" class="hidden space-y-6">
+                <div class="flex items-center justify-between mb-6">
+                    <button id="backToSelection" class="flex items-center text-turkuazz hover:text-white transition-colors">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Back to Selection
+                    </button>
+                    <h1 class="text-2xl font-light text-gray-300">Edit File</h1>
+                </div>
+                
+                <div class="bg-dark-card border border-gray-600 rounded-lg p-6">
+                    <div class="mb-6">
+                        <label class="block text-turkuazz text-sm mb-2">File URL (Read-only)</label>
+                        <input id="weburl" type="text" readonly class="w-full bg-dark-bg border border-gray-700 rounded px-3 py-2 text-gray-400 focus:outline-none cursor-not-allowed">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="fileName" class="block text-turkuazz text-sm mb-2">File Name</label>
+                            <input id="fileName" type="text" class="w-full bg-dark-bg border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-turkuazz">
+                        </div>
+                        
+                        <div>
+                            <label for="fileType" class="block text-turkuazz text-sm mb-2">File Type</label>
+                            <select id="fileType" class="w-full bg-dark-bg border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-turkuazz">
+                                <option value="">Select Type</option>
+                                <option value="video">Video</option>
+                                <option value="photo">Photo</option>
+                                <option value="text">Text</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="fileCategory" class="block text-turkuazz text-sm mb-2">Category</label>
+                            <select id="fileCategory" class="w-full bg-dark-bg border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-turkuazz">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <label class="flex items-center cursor-pointer">
+                                <div class="relative">
+                                    <input id="filePrivate" type="checkbox" class="sr-only">
+                                    <div class="block bg-gray-600 w-14 h-8 rounded-full toggle-bg"></div>
+                                    <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition"></div>
+                                </div>
+                                <div class="ml-3 text-turkuazz text-sm">Private File</div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <label for="fileAbout" class="block text-turkuazz text-sm mb-2">Description</label>
+                        <textarea id="fileAbout" rows="4" class="w-full bg-dark-bg border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-turkuazz" placeholder="Enter file description..."></textarea>
+                    </div>
+                    
+                    <div class="mt-8 flex justify-end space-x-4">
+                        <button id="cancelEdit" class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors">
+                            Cancel
+                        </button>
+                        <button id="saveChanges" class="px-4 py-2 bg-turkuazz text-dark-bg font-medium rounded hover:bg-opacity-80 transition-colors">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../assets/js/headers/header.js"></script>
+    <script src="../assets/js/headers/sidebar.js"></script>
+    <script src="../assets/js/edit.js"></script>
+</body>
+</html>
