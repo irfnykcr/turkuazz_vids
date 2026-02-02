@@ -37,21 +37,43 @@ document.addEventListener('DOMContentLoaded', async function() {
 	window.openVLC = async (weburl)=>{
 		try {
         const url = window.CDN_URL + weburl;
-        const result = await window.electronAPI.openVLC(url);
-        document.getElementById('status').textContent = `VLC Status: ${result}`;
+        const result = await window.electronAPI.openVLC(url)
+        document.getElementById('status').textContent = `VLC Status: ${result}`
       } catch (error) {
-        document.getElementById('status').textContent = `VLC Status: ${error}`;
+        document.getElementById('status').textContent = `VLC Status: ${error}`
+
       }
 	}
+	const forcekillBtn = document.getElementById('forcekill')
+	forcekillBtn.addEventListener('click', async ()=>{
+		try {
+			const result = await window.electronAPI.forceKillVLC()
+			document.getElementById('status').textContent = `VLC Status: ${result}`
+			if (!forcekillBtn.classList.contains('hidden')){
+				forcekillBtn.classList.add('hidden')
+			}
+		} catch (error) {
+			document.getElementById('status').textContent = `VLC Status: ${error}`
+		}
+	})
 	window.electronAPI.onVLCStatus((status) => {
       const statusDiv = document.getElementById('status')
       if (status.error) {
         statusDiv.textContent = `VLC Status: ${status.error}`
+		if (forcekillBtn.classList.contains('hidden')){
+			forcekillBtn.classList.remove('hidden')
+		}
       } else {
 		if (status.state === "stopped"){
 			statusDiv.textContent = `VLC Status: ${status.state}`
+			if (!forcekillBtn.classList.contains('hidden')){
+				forcekillBtn.classList.add('hidden')
+			}
 		} else {
 			statusDiv.textContent = `VLC Status: ${status.state}, Time: ${status.time}/${status.length}`
+			if (forcekillBtn.classList.contains('hidden')){
+				forcekillBtn.classList.remove('hidden')
+			}
 		}
       }
     })
@@ -69,15 +91,20 @@ document.addEventListener('DOMContentLoaded', async function() {
 		return JSON.parse(localStorage.getItem("last_activity"))
 	}
 
-	const getAllFiles = () => {
+	const getAllFiles = async () => {
+		if (!localStorage.getItem("all_files")){
+			loggerIndex.info("waiting for all_files")
+			await new Promise(resolve => setTimeout(resolve, 750))
+			return getAllFiles()
+		}
 		return JSON.parse(localStorage.getItem("all_files")) || []
 	}
 
-	const hasNextVideo = (weburl, category) => {
-		const allFiles = getAllFiles()
+	const hasNextVideo = async (weburl, category) => {
+		const allFiles = await getAllFiles()
 		if (!allFiles || allFiles.length === 0) {
 			loggerIndex.info('No files loaded yet')
-			return false
+			return hasNextVideo(weburl, category)
 		}
 		const catToMatch = category.endsWith('/') ? category : category + '/'
 		const filesInCategory = allFiles.filter(f => f && f.category === catToMatch)
@@ -85,11 +112,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 		return hasNext
 	}
 
-	const hasPreviousVideo = (weburl, category) => {
-		const allFiles = getAllFiles()
+	const hasPreviousVideo = async (weburl, category) => {
+		const allFiles = await getAllFiles()
 		if (!allFiles || allFiles.length === 0) {
 			loggerIndex.info('No files loaded yet')
-			return false
+			return hasPreviousVideo(weburl, category)
 		}
 		const catToMatch = category.endsWith('/') ? category : category + '/'
 		const filesInCategory = allFiles.filter(f => f && f.category === catToMatch)
@@ -158,14 +185,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 	const populateLastActivity = async ()=>{
 		const videos = await getLastActivity()
 		var html = ``
-		videos.forEach((index)=>{
+		let lenVideos = videos.length
+		videos.forEach(async (index)=>{
 			const weburl = index[0]
 			const name = index[1]
 			const about = index[2]
 			const catg = index[3]
 
-			const showPrevButton = hasPreviousVideo(weburl, catg)
-			const showNextButton = hasNextVideo(weburl, catg)
+			const showPrevButton = await hasPreviousVideo(weburl, catg)
+			const showNextButton = await hasNextVideo(weburl, catg)
+			loggerIndex.debug(`For video ${weburl}, showPrevButton: ${showPrevButton}, showNextButton: ${showNextButton}`)
 
 			html += `
 				<div class="flex-shrink-0 w-72 bg-dark-card rounded-lg overflow-hidden hover:bg-dark-hover transition-colors group" style="height: 280px;">
@@ -215,9 +244,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 					</div>
 				</div>
 			`
+			if (--lenVideos === 0){
+				lastActivityEl.innerHTML = html
+				window.setImages("#lastactivity-images", "still")
+			} else {
+				loggerIndex.debug(`Waiting to populate last activity, ${lenVideos} videos remaining.`)
+			}
 		})
-		lastActivityEl.innerHTML = html
-		window.setImages("#lastactivity-images", "still")
 	}
 
 	const getLastUploaded = async () => {

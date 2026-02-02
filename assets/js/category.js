@@ -67,7 +67,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     const videosPerPage = 12
     let currentSort = 'name'
 
-    // DOM elements
     const videosGrid = document.getElementById('videosGrid')
     const breadcrumb = document.getElementById('breadcrumb')
     const emptyState = document.getElementById('emptyState')
@@ -105,8 +104,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const all_catgs = JSON.parse(localStorage.getItem("all_categories"))
             let theCurrentcatg
             const parts = categoryParam.split("/").filter(r => r !== "")
-            
+            loggerCategory.info('Category parts:', parts)
             for (const part of parts) {
+                loggerCategory.info('Processing part:', part)
                 if (theCurrentcatg !== undefined) {
                     theCurrentcatg = theCurrentcatg[part]
                 } else {
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 if (!theCurrentcatg) break
             }
-            
+            loggerCategory.info('Current category object:', theCurrentcatg)
             const subCategories = (theCurrentcatg && typeof theCurrentcatg === 'object') ? Object.keys(theCurrentcatg) : []
             
             loggerCategory.info('Subcategories:', subCategories)
@@ -171,6 +171,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function renderSubCategories(subCategories) {
+        loggerCategory.info('Rendering subcategories:', subCategories)
         if (!subCategories || subCategories.length === 0) {
             subCategoriesSection.classList.add('hidden')
             return
@@ -213,22 +214,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (blobURL) {
                 img.src = blobURL
-                img.style.visibility = 'visible'
-                img.parentElement.querySelector('.folder-icon').style.display = 'none'
-            }
-        })
-        
-        document.querySelectorAll('.category-img').forEach(async (img) => {
-            const category = img.dataset.category
-            const cached = sessionStorage.getItem(`cat${category}`)
-            let blobURL = cached
-            
-            if (!cached) {
-                blobURL = await fetchCategoryImage(category)
-            }
-            
-            if (blobURL) {
-                img.src = blobURL
+                img.onerror = async () => {
+                    loggerCategory.warn('Image load failed for category:', category, 're-caching...')
+                    const newBlobURL = await fetchCategoryImage(category)
+                    if (newBlobURL) {
+                        img.src = newBlobURL
+                    }
+                }
                 img.style.visibility = 'visible'
                 img.parentElement.querySelector('.folder-icon').style.display = 'none'
             }
@@ -236,7 +228,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function updateBreadcrumb() {
-        // Parse category path and create breadcrumb
         const pathSegments = currentCategory.split('/').filter(segment => segment)
         let breadcrumbHTML = ''
         let currentPath = ''
@@ -263,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 case 'date':
                     return new Date(b.weburl) - new Date(a.weburl)
                 case 'size':
-                    // in format "1.5 GB"
+                    // "1.5 GB"
                     const aSize = parseFloat(a.size)
                     const bSize = parseFloat(b.size)
                     return bSize - aSize

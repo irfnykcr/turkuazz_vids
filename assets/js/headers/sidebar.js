@@ -41,8 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			await new Promise(resolve => setTimeout(resolve, 750))
 			return getCategories()
 		}
-		const allCatgs = JSON.parse(localStorage.getItem("all_categories"))
-		loggerSidebar.info(allCatgs)
+		let allCatgs = JSON.parse(localStorage.getItem("all_categories"))
+		loggerSidebar.debug("typeof allCatgs", typeof allCatgs)
 		return allCatgs
 	}
 
@@ -74,20 +74,45 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	const populateCategories = async () => {
-		makeSidebar() // Create the sidebar structure first
-		
-		const categoryTreeEl = document.querySelector("#categoryTree") // Now get the reference
+		makeSidebar()
+
+		const categoryTreeEl = document.querySelector("#categoryTree")
 		const catgs = await getCategories()
 		var html = ``
 
+		// if (catgs.personal) {
+		// 	let personalObj = catgs.personal
+		// 	if (typeof personalObj === 'string') {
+		// 		try {
+		// 			personalObj = JSON.parse(personalObj)
+		// 		} catch (e) {
+		// 			personalObj = {}
+		// 		}
+		// 	}
+		// 	Object.keys(personalObj).forEach((indexName) => {
+		// 		console.log("personal", indexName)
+		// 		html += makeCategoryHtml(indexName, personalObj[indexName])
+		// 	})
+		// }
+		// if (catgs.shared) {
+		// 	Object.keys(catgs.shared).forEach((indexName) => {
+		// 		console.log("shared",indexName)
+		// 		html += makeCategoryHtml(indexName, catgs.shared[indexName])
+		// 	})
+		// }
+		loggerSidebar.debug("222typeof catgs", typeof catgs)
 		Object.keys(catgs).forEach((indexName) => {
+			loggerSidebar.debug("processing category", indexName)
 			html += makeCategoryHtml(indexName, catgs[indexName])
+			// if (indexName !== 'personal' && indexName !== 'shared') {
+			// 	html += makeCategoryHtml(indexName, catgs[indexName])
+			// }
 		})
 
 		categoryTreeEl.innerHTML = html
-		
+
 		attachCategoryEventListeners()
-		setupExpandButton() // Setup expand button after sidebar is created
+		setupExpandButton()
 	}
 
 	const calculateExpandedHeight = (element) => {

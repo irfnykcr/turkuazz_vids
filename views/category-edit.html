@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TURKUAZZ - Category Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-dark-bg text-white min-h-screen">
+    <header></header>
+	<main class="container mx-auto px-6 py-8">
+		<div class="max-w-4xl mx-auto">
+			<div class="mb-8">
+				<h1 class="text-3xl font-bold text-turkuazz mb-2">Category Management</h1>
+			</div>
+
+			<div id="loadingState" class="text-center py-12">
+				<div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-turkuazz border-r-transparent"></div>
+				<p class="mt-4 text-gray-400">Loading categories...</p>
+			</div>
+
+			<div id="categoryManagement" class="hidden">
+				<div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+					<div class="xl:col-span-2 bg-dark-card rounded-lg p-6">
+						<h2 class="text-xl font-semibold text-turkuazz mb-4">Category Tree</h2>
+						
+						<div class="mb-4 flex space-x-2">
+							<button id="expandAll" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+								Expand All
+							</button>
+							<button id="collapseAll" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm">
+								Collapse All
+							</button>
+						</div>
+
+						<div id="categoryTree" class="category-tree bg-dark-bg rounded p-4 max-h-80 overflow-auto w-full">
+						</div>
+					</div>
+
+					<div class="bg-dark-card rounded-lg p-6">
+						<h2 class="text-xl font-semibold text-turkuazz mb-4">Create New Category</h2>
+						
+						<form id="createCategoryForm" class="space-y-4">
+							<div>
+								<label for="categoryName" class="block text-sm font-medium text-gray-300 mb-1">
+									Category Name
+								</label>
+								<input 
+									type="text" 
+									id="categoryName" 
+									maxlength="100"
+									placeholder="Enter category name"
+									class="w-full bg-dark-bg border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-turkuazz"
+									required
+								>
+								<p class="text-xs text-gray-500 mt-1">2-100 characters allowed</p>
+							</div>
+
+							<div>
+								<label for="parentCategory" class="block text-sm font-medium text-gray-300 mb-1">
+									Parent Category
+								</label>
+								<select 
+									id="parentCategory" 
+									class="w-full bg-dark-bg border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-turkuazz"
+								>
+									<option value="/">Root (no parent)</option>
+								</select>
+								<p class="text-xs text-gray-500 mt-1">Select where to place this category</p>
+							</div>
+
+							<div class="pt-4">
+								<button 
+									type="submit"
+									id="createCategoryBtn" 
+									class="w-full bg-turkuazz hover:bg-turkuazz/80 text-dark-bg font-medium py-2 px-4 rounded transition-colors"
+								>
+									Create Category
+								</button>
+							</div>
+						</form>
+
+						<div id="createCategoryStatus" class="mt-4 hidden">
+						</div>
+					</div>
+				</div>
+
+				<div class="mt-8 bg-dark-card rounded-lg p-6">
+					<h2 class="text-xl font-semibold text-turkuazz mb-4">Category Statistics</h2>
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+						<div class="bg-dark-bg rounded p-4 text-center">
+							<div id="totalCategories" class="text-2xl font-bold text-turkuazz">0</div>
+							<div class="text-gray-400 text-sm">Total Categories</div>
+						</div>
+						<div class="bg-dark-bg rounded p-4 text-center">
+							<div id="rootCategories" class="text-2xl font-bold text-turkuazz">0</div>
+							<div class="text-gray-400 text-sm">Root Categories</div>
+						</div>
+						<div class="bg-dark-bg rounded p-4 text-center">
+							<div id="maxDepth" class="text-2xl font-bold text-turkuazz">0</div>
+							<div class="text-gray-400 text-sm">Maximum Depth</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+
+    <script src="../assets/js/headers/header.js"></script>
+	<script src="../assets/js/headers/sidebar.js"></script>
+    <script src="../assets/js/category-edit.js"></script>
+</body>
+</html>

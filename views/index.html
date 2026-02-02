@@ -6,7 +6,7 @@
     <title>TURKUAZZ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../assets/css/style.css">
-    <script type="module">await import('../assets/js/renewCache.js')</script>
+    <script type="module" src="../assets/js/renewCache.js"></script>
 </head>
 <body class="bg-dark-bg text-white min-h-screen">
     <header></header>
@@ -15,8 +15,13 @@
         <aside id="sidebar"></aside>
 
         <main class="flex-1 p-6 overflow-hidden">
-            <div id="status">VLC Status: Not running</div>
-           <section class="mb-8">
+            <div id="status">
+                VLC Status: Not running
+            </div>
+            <button id="forcekill" class="hidden border border-turkuazz text-turkuazz px-1 py-1 rounded hover:bg-turkuazz hover:text-dark-bg transition">
+                force kill vlc
+            </button>
+            <section class="mb-8">
                 <h2 class="text-2xl font-light mb-6 text-gray-300">last activity</h2>
                 <div class="overflow-x-scroll pb-4">
                     <div id="lastactivity-content" class="flex gap-4"></div>

@@ -182,7 +182,13 @@ document.addEventListener("DOMContentLoaded", async ()=>{
             
             <!-- Right side -->
             <div class="flex items-center space-x-4">
-                <button onclick="window.location.href='edit.html'" class="text-turkuazz hover:text-white transition-colors font-medium">EDIT</button>
+                <div class="relative group">
+                    <button class="text-turkuazz hover:text-white transition-colors font-medium">EDIT</button>
+                    <div class="absolute right-0 mt-1 w-48 bg-dark-card border border-gray-600 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <a href="edit.html" class="block px-4 py-2 text-sm text-white hover:bg-dark-hover rounded-t-lg">Edit Videos</a>
+                        <a href="category-edit.html" class="block px-4 py-2 text-sm text-white hover:bg-dark-hover rounded-b-lg">Edit Categories</a>
+                    </div>
+                </div>
                 <form id="headerSearchForm" class="flex items-center space-x-2" onsubmit="return handleHeaderSearch(event)">
                     <input id="headerSearchInput" type="text" placeholder="Search..." class="bg-dark-card border border-gray-600 rounded px-3 py-1 text-sm focus:outline-none focus:border-turkuazz">
                   

@@ -18,29 +18,52 @@ const loggerRenewCache = {
 	}
 }
 
-const renewEnvVars = async ()=>{
-	const envVars = await window.electronAPI.getEnv();
-	localStorage.setItem("envVars", JSON.stringify(envVars))
+let envCache = null
+
+const getEnv = async () => {
+    if (envCache) return envCache
+
+    try {
+        const envVars = await window.electronAPI.getEnv()
+        if (!envVars?.API_URL || !envVars?.API_KEY) {
+            throw new Error('env variables are missing')
+        }
+        
+        envCache = envVars
+        localStorage.setItem('envVars', JSON.stringify(envVars))
+        return envCache
+    } catch (e) {
+        loggerRenewCache.error('could not get environment variables:', e)
+        const cachedEnv = localStorage.getItem('envVars')
+        if (cachedEnv) {
+            envCache = JSON.parse(cachedEnv)
+            return envCache
+        }
+        throw e
+    }
 }
+
 const renewAllFiles = async () => {
 	loggerRenewCache.info("renewing all files.")
-	await fetch(`${window.API_URL}/files/getfiles`, {
+	const { API_URL, API_KEY } = await getEnv()
+	
+	await fetch(`${API_URL}/files/getfiles`, {
 		method: 'POST',
 		headers: {
-			'api-key': `${window.API_KEY}`,
+			'api-key': `${API_KEY}`,
 			'Content-Type': 'application/json'
 		}
 	}).then(async (r)=>{
-		const r_dec = decodeURIComponent(await r.text())
+		const r_dec = await r.text()
 		return JSON.parse(r_dec)
 	}).then((r_json)=>{
 		const filesAsObjects = r_json.map(arr => ({
 			weburl: arr[0],
-			name: arr[1],
-			category: arr[2],
+			name: decodeURIComponent(arr[1]),
+			category: decodeURIComponent(arr[2]),
 			size: arr[3],
 			ftype: arr[4],
-			about: arr[5],
+			about: decodeURIComponent(arr[5]),
 			private: arr[6],
 			id: arr[7]
 		}))
@@ -48,46 +71,54 @@ const renewAllFiles = async () => {
 	})
 }
 const renewLastActivity = async () => {
-	loggerRenewCache.info("renewing last activirt.")
-	await fetch(`${window.API_URL}/activity/lastactivies`, {
+	loggerRenewCache.info("renewing last activity.")
+	const { API_URL, API_KEY } = await getEnv()
+	
+	await fetch(`${API_URL}/activity/lastactivies`, {
 		method: 'POST',
 		headers: {
-			'api-key': `${window.API_KEY}`,
+			'api-key': `${API_KEY}`,
 			'Content-Type': 'application/json'
 		}
 	}).then(async (r)=>{
-		const j = decodeURIComponent(await r.text())
-		const j_json = JSON.parse(j)
-		localStorage.setItem("last_activity", JSON.stringify(j_json))
+		const t = await r.text()
+		const j = JSON.parse(t)
+		// decode all elements in j[i] (j[i][0], j[i][1], etc.)
+		for (let i = 0; i < j.length; i++) {
+			for (let k = 0; k < j[i].length; k++) {
+				if (typeof j[i][k] === 'string') {
+					j[i][k] = decodeURIComponent(j[i][k])
+				}
+			}
+		}
+
+		localStorage.setItem("last_activity", JSON.stringify(j))
 	})
 }
 const renewAllCategories = async () => {
 	loggerRenewCache.info("renewing categories.")
-	await fetch(`${window.API_URL}/upload/get_categories`, {
+	const { API_URL, API_KEY } = await getEnv()
+	
+	await fetch(`${API_URL}/upload/get_categories`, {
 		method: 'POST',
 		headers: {
-			'api-key': `${window.API_KEY}`,
+			'api-key': `${API_KEY}`,
 			'Content-Type': 'application/json'
 		}
 	}).then(async (r)=>{
 		const j = JSON.parse(decodeURIComponent(await r.text()))
+		loggerRenewCache.debug("typeof j", typeof j)
 		localStorage.setItem("all_categories", JSON.stringify(j))
 	})
 }
 
-if (!localStorage.getItem("envVars")){
-	await renewEnvVars().then(()=>{
-		const envVars = JSON.parse(localStorage.getItem("envVars"))
-		window.API_URL = envVars.API_URL
-		window.API_KEY = envVars.API_KEY
-	})
-}
-if (!localStorage.getItem("all_files")){
+
+if (!localStorage.getItem("all_files")) {
 	renewAllFiles()
 }
-if (!localStorage.getItem("last_activity")){
+if (!localStorage.getItem("last_activity")) {
 	renewLastActivity()
 }
-if (!localStorage.getItem("all_categories")){
+if (!localStorage.getItem("all_categories")) {
 	renewAllCategories()
 }

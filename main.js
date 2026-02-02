@@ -50,7 +50,7 @@ ipcMain.handle('get-env', () => {
 
 let mainWindow
 let vlcMonitoringInterval = null
-let currentlyMonitoringWeburl = null
+// let currentlyMonitoringWeburl = null
 let isMonitoring = false
 let vlcProcess = null
 
@@ -67,9 +67,22 @@ const createWindow = () => {
 	})
 	
 	mainWindow = win
-	win.loadFile(path.join(__dirname, 'views/index.html'))
+
+	// change color of the page from white to grey
+	mainWindow.webContents.on('did-start-loading', () => {
+		mainWindow.webContents.insertCSS('body { background-color: #1a1a1a; }')
+	})
+
+	win.loadFile(path.join(__dirname, 'views/renew_cache.html'))
+
 	// win.webContents.openDevTools()
 }
+
+// implement force-kill-vlc
+ipcMain.handle('force-kill-vlc', async () => {
+	abortVLC()
+	return 'VLC force killed'
+})
 
 const getVLCStatus = async () => {
 	try {
@@ -81,10 +94,15 @@ const getVLCStatus = async () => {
 			}
 		)
 		const data = response.data
+		if (!data) return null
 		const state = data.state
 		const duration = data.length
+		if (duration <= 0) return null
 		const position = data.position
 		const currentTime = Math.floor(duration * position)
+		if (isNaN(currentTime) || isNaN(duration) || isNaN(position)) {
+			return null
+		}
 		
 		return { state, duration, currentTime, position }
 	} catch (error) {
@@ -150,7 +168,7 @@ const stopVLCMonitoring = () => {
 	}
 	isMonitoring = false
 	currentlyMonitoringWeburl = null
-	logger.log('VLC monitoring stopped')
+	logger.info('VLC monitoring stopped')
 	
 	if (mainWindow && !mainWindow.isDestroyed()) {
 		mainWindow.webContents.send('vlc-status', {
@@ -171,7 +189,10 @@ const abortVLC = () => {
 	if (vlcProcess && !vlcProcess.killed) {
 		try {
 			process.kill(vlcProcess.pid, 'SIGTERM')
-			logger.log('VLC process terminated, PID:', vlcProcess.pid)
+			try {
+				process.kill(vlcProcess.pid, 'SIGKILL')
+			} catch{}
+			logger.info('VLC process terminated. PID:', vlcProcess.pid)
 			vlcProcess = null
 		} catch (error) {
 			logger.error('Failed to kill VLC process:', error.message)
@@ -181,63 +202,72 @@ const abortVLC = () => {
 
 const startVLCMonitoring = async (weburl, startTime) => {
 	if (isMonitoring) {
-		logger.log('Already monitoring VLC, stopping previous monitoring')
+		logger.info('Already monitoring VLC, stopping previous monitoring')
 		abortVLC()
 	}
 
 	isMonitoring = true
 	currentlyMonitoringWeburl = weburl
-	logger.log('Starting VLC monitoring for:', weburl, 'startTime:', startTime)
+	logger.info('Starting VLC monitoring for:', weburl, 'startTime:', startTime)
 
 	let currentState = null
 	let currentTime = 0
 	let duration = 0
 	let lastUpdateTime = 0
 	let failureCount = 0
-	const MAX_FAILURES = 40
+	const MAX_FAILURES = 75
 
 	let seekRetries = 0
-	const waitForDuration = setInterval(async () => {
-		const status = await getVLCStatus()
+
+	let status = await getVLCStatus()
+	while (!status) {
+		if (!vlcProcess || vlcProcess.killed) {
+			logger.info('VLC process not found, stopping monitoring')
+			stopVLCMonitoring()
+			return
+		}
+		failureCount++
+		logger.info(`VLC status check failed (${failureCount}/${MAX_FAILURES})`)
+		
+		if (failureCount >= MAX_FAILURES) {
+			logger.info('VLC appears to have stopped')
+			stopVLCMonitoring()
+			return
+		}
+		await new Promise(resolve => setTimeout(resolve, 500))
+		status = await getVLCStatus()
+	}
+
+	while (seekRetries < MAX_FAILURES) {
+		let status = await getVLCStatus()
+
+		logger.debug(`got status. duration: ${status.duration}, currentTime: ${status.currentTime}`)
 		if (status && status.duration > 0) {
-			clearInterval(waitForDuration)
 			duration = status.duration
-			logger.log(`VLC ready, duration: ${duration}`)
+			logger.info(`VLC ready, duration: ${duration}`)
 
 			if (startTime > 0) {
 				const seekSuccess = await seekVLC(startTime)
 				if (seekSuccess) {3
-					logger.log(`Seeked to ${startTime}`)
+					logger.info(`Seeked to ${startTime}`)
 				}
 				await updateActivitySec(weburl, startTime, 'starting')
 			} else {
 				await updateActivitySec(weburl, 0, 'starting')
 			}
-		} else {
-			seekRetries++
-			if (seekRetries > 40) {
-				clearInterval(waitForDuration)
-				logger.error('Failed to get VLC duration, aborting monitoring')
-				abortVLC()
-			}
+			break
 		}
-	}, 250)
+		await new Promise(resolve => setTimeout(resolve, 500))
+		seekRetries++
+	}
 
 	vlcMonitoringInterval = setInterval(async () => {
 		const status = await getVLCStatus()
-
 		if (!status) {
-			failureCount++
-			logger.log(`VLC status check failed (${failureCount}/${MAX_FAILURES})`)
-			
-			if (failureCount >= MAX_FAILURES) {
-				logger.log('VLC appears to have stopped')
-				stopVLCMonitoring()
-			}
+			stopVLCMonitoring()
+			logger.info('Could not get VLC status, stopping monitoring')
 			return
 		}
-
-		failureCount = 0
 
 		if (status.duration !== duration && status.duration > 0) {
 			duration = status.duration
@@ -247,7 +277,7 @@ const startVLCMonitoring = async (weburl, startTime) => {
 		const ttime = status.currentTime
 
 		if (state === 'stopped') {
-			logger.log(`${currentTime}/${duration}, VLC stopped`)
+			logger.info(`${currentTime}/${duration}, VLC stopped`)
 			stopVLCMonitoring()
 			return
 		}
@@ -262,7 +292,7 @@ const startVLCMonitoring = async (weburl, startTime) => {
 
 		if (currentState !== state || currentTime !== ttime) {
 			if (ttime >= duration && duration > 0 && ttime > 0) {
-				logger.log('Video finished')
+				logger.info('Video finished')
 				abortVLC()
 				return
 			} else if (state !== currentState) {
@@ -273,7 +303,7 @@ const startVLCMonitoring = async (weburl, startTime) => {
 			if (state !== 'ended') {
 				currentTime = ttime
 			}
-			logger.log(`${currentTime}/${duration}, ${currentState}`)
+			logger.info(`${currentTime}/${duration}, ${currentState}`)
 			
 			if (mainWindow && !mainWindow.isDestroyed()) {
 				mainWindow.webContents.send('vlc-status', {
@@ -287,27 +317,33 @@ const startVLCMonitoring = async (weburl, startTime) => {
 }
 
 
+const getCurrentSec = async (weburl)=>{
+	let retries = 0
+	while (retries < 5){
+		try {
+			const response = await axios.post(
+				`${process.env.API_URL}/activity/currentsec`,
+				{ weburl },
+				{
+					headers: { 'api-key': process.env.API_KEY },
+					timeout: 5000
+				}
+			)
+			return parseInt(response.data)
+		} catch {
+			retries++
+		}
+	}
+	return 0
+}
+
 ipcMain.handle('open-vlc', async (event, url) => {
 	const weburl = url.replace(process.env.CDN_URL, '')
 	
-	let currentsec = 0
-	try {
-		const response = await axios.post(
-			`${process.env.API_URL}/activity/currentsec`,
-			{ weburl },
-			{
-				headers: { 'api-key': process.env.API_KEY },
-				timeout: 5000
-			}
-		)
-		currentsec = parseInt(response.data) || 0
-		logger.log('Fetched currentsec from server:', currentsec)
-	} catch (error) {
-		logger.error('Failed to fetch currentsec, starting from 0:', error.message)
-	}
+	let currentsec = await getCurrentSec(weburl) | 0
 	
 	if (vlcProcess && !vlcProcess.killed) {
-		logger.log('VLC already running, aborting previous instance')
+		logger.info('VLC already running, aborting previous instance')
 		abortVLC()
 		await new Promise(resolve => setTimeout(resolve, 500))
 	}
@@ -323,10 +359,10 @@ ipcMain.handle('open-vlc', async (event, url) => {
 		url
 	], { detached: false })
 
-	logger.log('VLC launched with PID:', vlcProcess.pid)
+	logger.info('VLC launched with PID:', vlcProcess.pid)
 
 	vlcProcess.on('exit', (code) => {
-		logger.log('VLC exited with code:', code)
+		logger.info('VLC exited with code:', code)
 		stopVLCMonitoring()
 		vlcProcess = null
 	})
